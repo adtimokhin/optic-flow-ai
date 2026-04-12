@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/adtimokhin/Documents/coding_projects/optic-flow-ai/.claude/hooks/format_on_save.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+ingestion:
+  source: "webcam"  # "webcam", "file", or "youtube_url"
+  path: ""          # path to video file or YouTube URL if not using webcam
+
+detection:
+  waterline:
+    model_path: "models/waterline/"
+    confidence_threshold: 0.7
+  plimsoll:
+    model_path: "models/plimsoll/"
+    confidence_threshold: 0.7
+
+ais:
+  provider: "aisstream"  # "aisstream" or "marinetraffic"
+  # API key loaded from .env
+
+output:
+  format: "json"
+  destination: "stdout"  # "stdout" or path to log file

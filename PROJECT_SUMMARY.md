@@ -1,0 +1,3 @@
+# Project Summary
+
+**Maritime Ship Draft Estimator** is a computer vision pipeline that estimates bulk cargo load on vessels by detecting the waterline against hull markings in port camera footage, cross-referenced with live AIS (Automatic Identification System) transponder data. It detects the **Plimsoll line** markings painted on ship hulls and computes draft depth from how far the waterline sits against those markings — the same signal commodity traders read manually today, automated with CV. AIS data (free, public) provides vessel identity, origin, destination, and declared commodity type, which the system correlates with the visual draft estimate. The output is a structured record: `vessel_id → estimated load % → origin/destination → commodity type`.

@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["src"]
+known_third_party = ["torch", "torchvision", "tensorflow", "cv2", "numpy", "yaml", "websockets", "requests"]
+src_paths = ["src", "tests"]
