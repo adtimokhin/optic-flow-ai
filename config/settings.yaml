@@ -1,6 +1,6 @@
 ingestion:
-  source: "webcam"  # "webcam" or "youtube"
-  path: ""          # YouTube URL when source is "youtube"
+  source: "webcam"  # "webcam", "youtube", or "file"
+  path: ""          # YouTube URL or local file path depending on source
   webcam:
     device_index: 0
     frame_width: 1280

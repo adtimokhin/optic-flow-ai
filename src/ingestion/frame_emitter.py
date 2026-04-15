@@ -5,15 +5,16 @@ from typing import Union
 
 import yaml
 
+from src.ingestion.file_capture import FileCapture
 from src.ingestion.frames import Frame
 from src.ingestion.webcam_capture import WebcamCapture
 from src.ingestion.youtube_capture import YouTubeCapture
 
-_Capture = Union[WebcamCapture, YouTubeCapture]
+_Capture = Union[WebcamCapture, YouTubeCapture, FileCapture]
 
 
 class FrameEmitter:
-    """Unified frame iterator over webcam or YouTube video sources."""
+    """Unified frame iterator over webcam, YouTube, or local file sources."""
 
     def __init__(self, capture: _Capture) -> None:
         self._capture = capture
@@ -49,6 +50,11 @@ class FrameEmitter:
         )
 
     @classmethod
+    def from_file(cls, path: str) -> FrameEmitter:
+        """Returns a FrameEmitter backed by a local video or image file."""
+        return cls(FileCapture(path))
+
+    @classmethod
     def from_config(cls, config_path: str = "config/settings.yaml") -> FrameEmitter:
         """Returns a FrameEmitter configured from the given settings.yaml path."""
         with open(config_path) as f:
@@ -58,6 +64,8 @@ class FrameEmitter:
             capture: _Capture = WebcamCapture.from_config(cfg)
         elif source == "youtube":
             capture = YouTubeCapture.from_config(cfg)
+        elif source == "file":
+            capture = FileCapture.from_config(cfg)
         else:
             raise ValueError(f"Unknown ingestion source: {source!r}")
         return cls(capture)
