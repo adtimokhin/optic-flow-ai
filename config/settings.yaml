@@ -1,6 +1,14 @@
 ingestion:
-  source: "webcam"  # "webcam", "file", or "youtube_url"
-  path: ""          # path to video file or YouTube URL if not using webcam
+  source: "webcam"  # "webcam" or "youtube"
+  path: ""          # YouTube URL when source is "youtube"
+  webcam:
+    device_index: 0
+    frame_width: 1280
+    frame_height: 720
+    frame_rate: 30
+  youtube:
+    format: "best[ext=mp4]/best"
+    frame_rate: 30
 
 detection:
   waterline:
