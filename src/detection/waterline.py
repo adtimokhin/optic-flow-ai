@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
 import torch
+import torch.nn as nn
 import yaml
 
 from src.ingestion.frames import Frame
@@ -12,6 +13,7 @@ from src.ingestion.frames import Frame
 DEFAULT_INPUT_SIZE: tuple[int, int] = (512, 512)
 DEFAULT_NORMALIZE_MEAN: list[float] = [0.485, 0.456, 0.406]
 DEFAULT_NORMALIZE_STD: list[float] = [0.229, 0.224, 0.225]
+NUM_CLASSES: int = 3  # water=0, hull_above=1, hull_below=2
 
 
 @dataclass
@@ -89,3 +91,85 @@ class FramePreprocessor:
         """Converts a normalised (H, W, C) float32 array to a batched (1, C, H, W) tensor."""
         tensor = torch.from_numpy(image).permute(2, 0, 1)
         return tensor.unsqueeze(0)
+
+
+# ---------------------------------------------------------------------------
+# Segmentation result
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SegmentationResult:
+    """Pixel-wise classification output from the waterline segmentation model."""
+
+    # Shape (H, W), dtype long — values: 0=water, 1=hull_above, 2=hull_below
+    mask: torch.Tensor
+    original_size: tuple[int, int]  # (height, width) of the source frame
+    source_label: str
+    is_stub: bool  # True when produced by the stub model, not real weights
+
+
+# ---------------------------------------------------------------------------
+# Stub model — placeholder until real weights are trained
+# ---------------------------------------------------------------------------
+
+
+class _StubSegmentationModel(nn.Module):
+    """Returns a constant all-water mask. Deterministic, zero-dependency placeholder."""
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns logits shaped (batch, NUM_CLASSES, H, W) with water class dominant."""
+        batch, _, h, w = x.shape
+        logits = torch.zeros(batch, NUM_CLASSES, h, w)
+        logits[:, 0, :, :] = 1.0  # water class gets highest logit everywhere
+        return logits
+
+
+# ---------------------------------------------------------------------------
+# Segmentor
+# ---------------------------------------------------------------------------
+
+
+class WaterlineSegmentor:
+    """Runs segmentation on a preprocessed frame and returns a pixel-wise class mask.
+
+    When no model weights are available a deterministic stub is used so the
+    rest of the pipeline can be developed and tested independently.
+    """
+
+    def __init__(self, model: nn.Module | None = None) -> None:
+        self._model: nn.Module = (
+            model if model is not None else _StubSegmentationModel()
+        )
+        self._is_stub = model is None
+        self._model.eval()
+
+    @classmethod
+    def from_config(
+        cls, config_path: str = "config/settings.yaml"
+    ) -> WaterlineSegmentor:
+        """Returns a WaterlineSegmentor, loading weights from model_path if they exist."""
+        with open(config_path) as f:
+            cfg = yaml.safe_load(f)
+        model_path = cfg.get("detection", {}).get("waterline", {}).get("model_path", "")
+        weights_file = f"{model_path}weights.pt" if model_path else ""
+
+        import os
+
+        if weights_file and os.path.exists(weights_file):
+            model = torch.load(weights_file, map_location="cpu")
+            return cls(model=model)
+
+        return cls(model=None)
+
+    def segment(self, preprocessed: PreprocessedFrame) -> SegmentationResult:
+        """Runs the segmentation model and returns a labelled mask at model resolution."""
+        with torch.no_grad():
+            logits = self._model(preprocessed.tensor)  # (1, C, H, W)
+        mask = logits.squeeze(0).argmax(dim=0)  # (H, W), long
+        return SegmentationResult(
+            mask=mask,
+            original_size=preprocessed.original_size,
+            source_label=preprocessed.source_label,
+            is_stub=self._is_stub,
+        )

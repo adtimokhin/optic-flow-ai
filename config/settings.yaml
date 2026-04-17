@@ -11,12 +11,19 @@ ingestion:
     frame_rate: 30
 
 detection:
+  ship:
+    model_path: "yolov8n.pt"   # downloaded automatically by ultralytics on first run
+    confidence_threshold: 0.3
   waterline:
     model_path: "models/waterline/"
     confidence_threshold: 0.7
     input_size: [512, 512]
     normalize_mean: [0.485, 0.456, 0.406]
     normalize_std: [0.229, 0.224, 0.225]
+    class_labels:              # segmentation class indices
+      water: 0
+      hull_above: 1
+      hull_below: 2
   plimsoll:
     model_path: "models/plimsoll/"
     confidence_threshold: 0.7
